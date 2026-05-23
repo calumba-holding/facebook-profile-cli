@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-function discoverSubTabsInBrowser() {
+function discoverSubtabsInBrowser() {
   function clean(value) {
     return (value || "").replace(/\s+/g, " ").trim();
   }
