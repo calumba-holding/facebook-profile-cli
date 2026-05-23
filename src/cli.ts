@@ -52,7 +52,8 @@ const scrape = program
   .option("--json", "Also print the full JSON to stdout", false)
   .option("--navigation-timeout-ms <ms>", "Navigation timeout in milliseconds", (v) => Number(v), 60_000)
   .option("--wait-after-navigation-ms <ms>", "Pause after page load before continuing", (v) => Number(v), 2_000)
-  .option("--max-posts <n>", "Max timeline posts to scrape on the All tab", (v) => Number(v), 20);
+  .option("--max-posts <n>", "Max timeline posts to scrape on the All tab", (v) => Number(v), 20)
+  .option("--no-video", "Skip session screen recording", false);
 
 sharedBrowserOptions(scrape);
 
@@ -67,6 +68,7 @@ scrape.action(
       navigationTimeoutMs: number;
       waitAfterNavigationMs: number;
       maxPosts: number;
+      noVideo?: boolean;
     },
   ) => {
     await runScrapeCommand({
@@ -78,6 +80,7 @@ scrape.action(
       navigationTimeoutMs: opts.navigationTimeoutMs,
       waitAfterNavigationMs: opts.waitAfterNavigationMs,
       maxPosts: opts.maxPosts,
+      recordVideo: !opts.noVideo,
     });
   },
 );

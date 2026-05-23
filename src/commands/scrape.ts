@@ -7,7 +7,12 @@ import {
   resolveChromeExecutable,
   resolveProfileDir,
 } from "../config.js";
-import { defaultOutputPath, printJson, writeJsonOutput } from "../output.js";
+import {
+  createScrapeArtifacts,
+  finalizeSessionVideo,
+  printJson,
+  writeJsonOutput,
+} from "../output.js";
 import { scrapeFacebookProfile } from "../scrape/profile-scraper.js";
 import { normalizeFacebookProfileUrl } from "../urls.js";
 
@@ -19,6 +24,8 @@ export type ScrapeOptions = {
   waitAfterNavigationMs?: number;
   maxPosts?: number;
   outputFile?: string;
+  outDir?: string;
+  recordVideo?: boolean;
   jsonStdout?: boolean;
 };
 
@@ -28,15 +35,30 @@ export async function runScrapeCommand(options: ScrapeOptions): Promise<void> {
   const chromeExecutable = resolveChromeExecutable(options.chromeExecutable);
   const navigationTimeoutMs = options.navigationTimeoutMs ?? DEFAULT_NAVIGATION_TIMEOUT_MS;
   const waitAfterNavigationMs = options.waitAfterNavigationMs ?? DEFAULT_WAIT_AFTER_NAVIGATION_MS;
-  const outputFile = options.outputFile ?? defaultOutputPath(profileUrl);
+  const recordVideo = options.recordVideo !== false;
+
+  const artifacts = options.outputFile
+    ? {
+        jsonPath: options.outputFile,
+        sessionVideoPath: options.outputFile.replace(/\.json$/i, ".webm"),
+        videoRecordDir: options.outputFile.replace(/\.json$/i, ".playwright-video"),
+      }
+    : createScrapeArtifacts(profileUrl, options.outDir ?? "./out");
 
   let context: BrowserContext | undefined;
 
   try {
     process.stderr.write(`Using Chrome profile: ${profileDir}\n`);
     process.stderr.write(`Scraping profile: ${profileUrl}\n`);
+    if (recordVideo) {
+      process.stderr.write(`Session video will be saved to: ${artifacts.sessionVideoPath}\n`);
+    }
 
-    context = await launchSignedInChrome({ profileDir, chromeExecutable });
+    context = await launchSignedInChrome({
+      profileDir,
+      chromeExecutable,
+      recordVideoDir: recordVideo ? artifacts.videoRecordDir : undefined,
+    });
     const page = context.pages()[0] ?? await context.newPage();
 
     const result = await scrapeFacebookProfile(page, profileUrl, {
@@ -45,8 +67,27 @@ export async function runScrapeCommand(options: ScrapeOptions): Promise<void> {
       maxPosts: options.maxPosts ?? 20,
     });
 
-    await writeJsonOutput(outputFile, result);
-    process.stderr.write(`Wrote JSON: ${outputFile}\n`);
+    result.outputJsonPath = artifacts.jsonPath;
+
+    await context.close();
+    context = undefined;
+
+    if (recordVideo) {
+      const videoPath = await finalizeSessionVideo(
+        artifacts.videoRecordDir,
+        artifacts.sessionVideoPath,
+      );
+      if (videoPath) {
+        result.sessionVideoPath = videoPath;
+        process.stderr.write(`Wrote session video: ${videoPath}\n`);
+      } else {
+        result.errors.push("Session video recording produced no file");
+        process.stderr.write("Warning: session video file was not created\n");
+      }
+    }
+
+    await writeJsonOutput(artifacts.jsonPath, result);
+    process.stderr.write(`Wrote JSON: ${artifacts.jsonPath}\n`);
 
     if (result.errors.length > 0) {
       process.stderr.write(`Completed with ${result.errors.length} warning(s):\n`);

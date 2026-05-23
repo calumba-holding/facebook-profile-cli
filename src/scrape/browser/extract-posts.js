@@ -133,8 +133,7 @@ function extractPostsInBrowser(maxPosts) {
     return !isCommentThread;
   }
 
-  const main =
-    document.querySelector('[role="main"]') ?? document.querySelector("#screen-root") ?? document.body;
+  const main = getContentRoot();
 
   const candidates = Array.from(main.querySelectorAll('[role="article"]')).filter(isFeedPostArticle);
 

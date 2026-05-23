@@ -94,6 +94,8 @@ export type ProfileScrapeResult = {
   inputUrl: string;
   profileUrl: string;
   scrapedAt: string;
+  outputJsonPath?: string;
+  sessionVideoPath?: string;
   header: ProfileHeader;
   overview: {
     url: string;

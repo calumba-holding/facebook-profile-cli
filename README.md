@@ -42,9 +42,12 @@ The scraper:
 2. Visits each profile tab (All, About, Reels, Photos, Followers, …)
 3. On **All**: scrolls the feed, expands “See more”, extracts up to `--max-posts` posts (default 20)
 4. On **Photos**: scrolls each photo sub-tab and collects image URLs
-5. Writes JSON to `./out/<username>-<timestamp>.json` (or `--output`)
+5. Records the browser session as `./out/<username>-<timestamp>.webm` (same basename as JSON)
+6. Writes JSON to `./out/<username>-<timestamp>.json` with `sessionVideoPath` and `outputJsonPath`
 
-Add `--json` to also print the result to stdout.
+Add `--json` to also print the result to stdout. Use `--no-video` to skip recording.
+
+Link and overview extraction is scoped to `[role="main"]` and filters notification/group noise from your logged-in sidebar.
 
 ## Commands
 
@@ -60,6 +63,7 @@ Add `--json` to also print the result to stdout.
 |------|---------|-------------|
 | `--output <path>` | `./out/...` | JSON output path |
 | `--max-posts <n>` | `20` | Timeline posts on the All tab |
+| `--no-video` | off | Skip session screen recording |
 | `--json` | off | Print JSON to stdout |
 | `--navigation-timeout-ms` | `60000` | Page load timeout |
 | `--wait-after-navigation-ms` | `2000` | Pause after navigation |
@@ -71,6 +75,7 @@ Add `--json` to also print the result to stdout.
 
 ## JSON output shape
 
+- `outputJsonPath` / `sessionVideoPath` — paths to the written JSON and session video
 - `header` — display name, follower counts, profile/cover image URLs
 - `overview` — links and section previews from the main page
 - `tabs.all.posts[]` — structured timeline posts (`text`, `permalink`, `images`, `engagement`, …)

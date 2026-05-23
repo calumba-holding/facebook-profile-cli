@@ -1,11 +1,8 @@
 /* eslint-disable no-undef */
 function extractPhotosInBrowser() {
-  function clean(value) {
-    return (value || "").replace(/\s+/g, " ").trim();
-  }
-
   const photos = [];
   const seenHref = new Set();
+  const main = getContentRoot();
 
   const selectors = [
     'a[href*="photo.php"]',
@@ -14,9 +11,10 @@ function extractPhotosInBrowser() {
   ];
 
   for (const selector of selectors) {
-    for (const anchor of document.querySelectorAll(selector)) {
+    for (const anchor of main.querySelectorAll(selector)) {
       const href = anchor.href;
       if (!href || seenHref.has(href) || href.startsWith("javascript:")) continue;
+      if (isNoiseLink(href, anchor.textContent)) continue;
 
       const img = anchor.querySelector("img[src]");
       const imageUrl = img && img.src ? img.src : undefined;
@@ -26,7 +24,7 @@ function extractPhotosInBrowser() {
       photos.push({
         href,
         imageUrl: imageUrl || null,
-        alt: img ? clean(img.alt) || null : null,
+        alt: img ? cleanScrapeText(img.alt) || null : null,
       });
     }
   }

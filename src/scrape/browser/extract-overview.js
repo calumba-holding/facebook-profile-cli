@@ -1,33 +1,18 @@
 /* eslint-disable no-undef */
 function extractOverviewInBrowser() {
-  function clean(value) {
-    return (value || "").replace(/\s+/g, " ").trim();
-  }
-
-  function decodeFacebookRedirect(href) {
-    try {
-      const url = new URL(href);
-      if (!url.hostname.includes("facebook.com") || !url.pathname.includes("/l.php")) return href;
-      const target = url.searchParams.get("u");
-      return target ? decodeURIComponent(target) : href;
-    } catch {
-      return href;
-    }
-  }
-
   function uniquePush(list, value) {
     if (!value || list.includes(value)) return;
     list.push(value);
   }
 
-  function findSectionByHeading(title) {
-    const heading = Array.from(document.querySelectorAll("h2, h3")).find(
-      (el) => clean(el.textContent) === title,
+  function findSectionByHeading(title, root) {
+    const heading = Array.from(root.querySelectorAll("h2, h3")).find(
+      (el) => cleanScrapeText(el.textContent) === title,
     );
     if (!heading) return null;
 
     if (heading.id) {
-      const labelled = document.querySelector(`[aria-labelledby="${heading.id}"]`);
+      const labelled = root.querySelector(`[aria-labelledby="${heading.id}"]`);
       if (labelled) return labelled;
     }
 
@@ -38,59 +23,38 @@ function extractOverviewInBrowser() {
     );
   }
 
+  const main = getContentRoot();
   const sectionTitles = ["Links", "Contact info", "Intro", "About"];
   const sections = [];
 
   for (const title of sectionTitles) {
-    const root = findSectionByHeading(title);
+    const root = findSectionByHeading(title, main);
     if (!root) continue;
 
     const lines = [];
-    const links = [];
-    const seenHref = new Set();
-
     for (const item of root.querySelectorAll('[role="listitem"], li')) {
-      const text = clean(item.textContent);
+      const text = cleanScrapeText(item.textContent);
       if (!text || text === title || text.length > 400) continue;
       uniquePush(lines, text);
     }
 
-    for (const anchor of root.querySelectorAll("a[href]")) {
-      const href = decodeFacebookRedirect(anchor.href);
-      if (!href || seenHref.has(href)) continue;
-      seenHref.add(href);
-      links.push({
-        text: clean(anchor.innerText || anchor.textContent) || href,
-        href,
-      });
-    }
+    const links = collectProfileLinks(root, 20);
 
     if (lines.length > 0 || links.length > 0) {
-      sections.push({ title, lines: lines.slice(0, 30), links: links.slice(0, 20) });
+      sections.push({ title, lines: lines.slice(0, 30), links });
     }
   }
 
-  const allLinks = [];
-  const seen = new Set();
-  for (const anchor of document.querySelectorAll("a[href]")) {
-    const href = decodeFacebookRedirect(anchor.href);
-    if (!href || seen.has(href)) continue;
-    seen.add(href);
-    allLinks.push({
-      text: clean(anchor.innerText || anchor.textContent) || href,
-      href,
-    });
-    if (allLinks.length >= 80) break;
-  }
+  const allLinks = collectProfileLinks(main, 80);
 
-  const postsPreview = Array.from(document.querySelectorAll('[role="article"]'))
-    .map((el) => clean(el.textContent))
+  const postsPreview = Array.from(main.querySelectorAll('[role="article"]'))
+    .map((el) => cleanScrapeText(el.textContent))
     .filter((text) => text.length > 20)
     .slice(0, 15);
 
   const displayName =
-    clean(document.querySelector("h1")?.textContent) ||
-    clean(document.querySelector('[role="main"] span')?.textContent);
+    cleanScrapeText(main.querySelector("h1")?.textContent) ||
+    cleanScrapeText(document.querySelector("h1")?.textContent);
 
   return { sections, links: allLinks, postsPreview, displayName };
 }

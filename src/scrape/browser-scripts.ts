@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+const SCOPE_SCRIPT = "scrape-scope";
 
 function resolveBrowserScriptPath(name: string): string {
   const candidates = [
@@ -17,16 +18,36 @@ function resolveBrowserScriptPath(name: string): string {
   throw new Error(`Browser script not found: ${name}`);
 }
 
+function loadBrowserScriptSource(name: string): string {
+  if (name === SCOPE_SCRIPT) {
+    return readFileSync(resolveBrowserScriptPath(name), "utf8");
+  }
+  const scope = readFileSync(resolveBrowserScriptPath(SCOPE_SCRIPT), "utf8");
+  const main = readFileSync(resolveBrowserScriptPath(name), "utf8");
+  return `${scope}\n${main}`;
+}
+
+function entryFunctionName(scriptName: string): string {
+  const base = scriptName.replace(/\.js$/, "");
+  const camel = base
+    .split("-")
+    .map((part, index) => (index === 0 ? part : `${part[0].toUpperCase()}${part.slice(1)}`))
+    .join("");
+  return `${camel}InBrowser`;
+}
+
 function loadBrowserScript(name: string): string {
-  const source = readFileSync(resolveBrowserScriptPath(name), "utf8");
-  const match = source.match(/function\s+(\w+)\s*\(/);
-  if (!match) throw new Error(`Browser script ${name} must export a top-level function`);
-  return match[1];
+  const fnName = entryFunctionName(name);
+  const source = loadBrowserScriptSource(name);
+  if (!source.includes(`function ${fnName}(`)) {
+    throw new Error(`Browser script ${name} must define function ${fnName}`);
+  }
+  return fnName;
 }
 
 export async function runBrowserScript<T>(page: Page, name: string, arg?: number | string): Promise<T> {
   const fnName = loadBrowserScript(name);
-  const script = readFileSync(resolveBrowserScriptPath(name), "utf8");
+  const script = loadBrowserScriptSource(name);
   const expression =
     arg === undefined
       ? `(() => { ${script}; return ${fnName}(); })()`

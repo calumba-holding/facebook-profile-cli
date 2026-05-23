@@ -1,12 +1,47 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { extractUsernameFromUrl, slugifyKey } from "./scrape/text.js";
 
-export function defaultOutputPath(profileUrl: string, outDir = "./out"): string {
+export type ScrapeArtifacts = {
+  jsonPath: string;
+  sessionVideoPath: string;
+  videoRecordDir: string;
+};
+
+export function createScrapeArtifacts(profileUrl: string, outDir = "./out"): ScrapeArtifacts {
   const username = extractUsernameFromUrl(profileUrl) ?? "profile";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return join(outDir, `${slugifyKey(username)}-${stamp}.json`);
+  const base = `${slugifyKey(username)}-${stamp}`;
+  return {
+    jsonPath: join(outDir, `${base}.json`),
+    sessionVideoPath: join(outDir, `${base}.webm`),
+    videoRecordDir: join(outDir, `.playwright-video-${base}`),
+  };
+}
+
+/** @deprecated Use createScrapeArtifacts */
+export function defaultOutputPath(profileUrl: string, outDir = "./out"): string {
+  return createScrapeArtifacts(profileUrl, outDir).jsonPath;
+}
+
+export async function finalizeSessionVideo(
+  videoRecordDir: string,
+  targetPath: string,
+): Promise<string | undefined> {
+  if (!existsSync(videoRecordDir)) return undefined;
+
+  const entries = await readdir(videoRecordDir, { withFileTypes: true });
+  const webmFile = entries.find((e) => e.isFile() && e.name.endsWith(".webm"));
+  if (!webmFile) return undefined;
+
+  await mkdir(dirname(targetPath), { recursive: true });
+  const sourcePath = join(videoRecordDir, webmFile.name);
+  await rename(sourcePath, targetPath);
+  await rm(videoRecordDir, { recursive: true, force: true }).catch(() => undefined);
+
+  return targetPath;
 }
 
 export async function writeJsonOutput(filePath: string, data: unknown): Promise<void> {
