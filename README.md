@@ -42,10 +42,11 @@ The scraper:
 2. Visits each profile tab (All, About, Reels, Photos, Followers, …)
 3. On **All**: scrolls the feed, expands “See more”, extracts up to `--max-posts` posts (default 20)
 4. On **Photos**: scrolls each photo sub-tab and collects image URLs
-5. Records the browser session as `./out/<username>-<timestamp>.webm` (same basename as JSON)
-6. Writes JSON to `./out/<username>-<timestamp>.json` with `sessionVideoPath` and `outputJsonPath`
+5. Records the browser session under `~/.exxpress-cli/evidence/facebook-profile-cli/captures/` (same basename as JSON)
+6. Writes JSON under `~/.exxpress-cli/evidence/facebook-profile-cli/captures/` with `sessionVideoPath` and `outputJsonPath`
 
 Add `--json` to also print the result to stdout. Use `--no-video` to skip recording.
+`--output` takes priority over `FACEBOOK_CLI_OUTPUT_DIR` and the default capture directory.
 
 Link and overview extraction is scoped to `[role="main"]` and filters notification/group noise from your logged-in sidebar.
 
@@ -61,7 +62,7 @@ Link and overview extraction is scoped to `[role="main"]` and filters notificati
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--output <path>` | `./out/...` | JSON output path |
+| `--output <path>` | `~/.exxpress-cli/evidence/facebook-profile-cli/captures/...` | JSON output path |
 | `--max-posts <n>` | `20` | Timeline posts on the All tab |
 | `--no-video` | off | Skip session screen recording |
 | `--json` | off | Print JSON to stdout |
@@ -72,6 +73,7 @@ Link and overview extraction is scoped to `[role="main"]` and filters notificati
 
 - `FACEBOOK_CLI_CHROME_EXECUTABLE` — override Chrome binary path
 - `FACEBOOK_CLI_PROFILE_ROOT` — override profile root (default: `~/.scrape/profiles`)
+- `FACEBOOK_CLI_OUTPUT_DIR` — override the default capture output directory
 
 ## JSON output shape
 

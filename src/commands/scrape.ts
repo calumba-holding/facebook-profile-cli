@@ -8,9 +8,9 @@ import {
   resolveProfileDir,
 } from "../config.js";
 import {
-  createScrapeArtifacts,
   finalizeSessionVideo,
   printJson,
+  resolveScrapeArtifacts,
   writeJsonOutput,
 } from "../output.js";
 import { scrapeFacebookProfile } from "../scrape/profile-scraper.js";
@@ -37,13 +37,7 @@ export async function runScrapeCommand(options: ScrapeOptions): Promise<void> {
   const waitAfterNavigationMs = options.waitAfterNavigationMs ?? DEFAULT_WAIT_AFTER_NAVIGATION_MS;
   const recordVideo = options.recordVideo !== false;
 
-  const artifacts = options.outputFile
-    ? {
-        jsonPath: options.outputFile,
-        sessionVideoPath: options.outputFile.replace(/\.json$/i, ".webm"),
-        videoRecordDir: options.outputFile.replace(/\.json$/i, ".playwright-video"),
-      }
-    : createScrapeArtifacts(profileUrl, options.outDir ?? "./out");
+  const artifacts = resolveScrapeArtifacts(profileUrl, options.outputFile, options.outDir);
 
   let context: BrowserContext | undefined;
 

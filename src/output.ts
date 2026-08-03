@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import { resolveOutputDir } from "./config.js";
 import { extractUsernameFromUrl, slugifyKey } from "./scrape/text.js";
 
 export type ScrapeArtifacts = {
@@ -10,7 +11,8 @@ export type ScrapeArtifacts = {
   videoRecordDir: string;
 };
 
-export function createScrapeArtifacts(profileUrl: string, outDir = "./out"): ScrapeArtifacts {
+export function createScrapeArtifacts(profileUrl: string, configuredDir?: string): ScrapeArtifacts {
+  const outDir = resolveOutputDir(configuredDir);
   const username = extractUsernameFromUrl(profileUrl) ?? "profile";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const base = `${slugifyKey(username)}-${stamp}`;
@@ -21,9 +23,23 @@ export function createScrapeArtifacts(profileUrl: string, outDir = "./out"): Scr
   };
 }
 
+export function resolveScrapeArtifacts(
+  profileUrl: string,
+  outputFile?: string,
+  configuredDir?: string,
+): ScrapeArtifacts {
+  if (!outputFile) return createScrapeArtifacts(profileUrl, configuredDir);
+
+  return {
+    jsonPath: outputFile,
+    sessionVideoPath: outputFile.replace(/\.json$/i, ".webm"),
+    videoRecordDir: outputFile.replace(/\.json$/i, ".playwright-video"),
+  };
+}
+
 /** @deprecated Use createScrapeArtifacts */
-export function defaultOutputPath(profileUrl: string, outDir = "./out"): string {
-  return createScrapeArtifacts(profileUrl, outDir).jsonPath;
+export function defaultOutputPath(profileUrl: string, configuredDir?: string): string {
+  return createScrapeArtifacts(profileUrl, configuredDir).jsonPath;
 }
 
 export async function finalizeSessionVideo(

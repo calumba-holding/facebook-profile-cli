@@ -19,6 +19,7 @@
     "build": "tsc -p tsconfig.json && rm -rf dist/scrape/browser && mkdir -p dist/scrape/browser && cp -R src/scrape/browser/. dist/scrape/browser/",
     "dev": "npm run build --silent && node dist/cli.js",
     "start": "node dist/cli.js",
+    "test": "tsx --test test/output.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

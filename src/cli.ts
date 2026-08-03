@@ -48,7 +48,10 @@ const scrape = program
   .command("scrape")
   .description("Scrape a Facebook profile (tabs, About, More menu) and write JSON")
   .argument("<profile-url>", "Facebook profile URL to scrape")
-  .option("--output <path>", "JSON output file path (default: ./out/<username>-<timestamp>.json)")
+  .option(
+    "--output <path>",
+    "JSON output file path (default: ~/.exxpress-cli/evidence/facebook-profile-cli/captures/<username>-<timestamp>.json)",
+  )
   .option("--json", "Also print the full JSON to stdout", false)
   .option("--navigation-timeout-ms <ms>", "Navigation timeout in milliseconds", (v) => Number(v), 60_000)
   .option("--wait-after-navigation-ms <ms>", "Pause after page load before continuing", (v) => Number(v), 2_000)
